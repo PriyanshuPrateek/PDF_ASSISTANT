@@ -9,6 +9,7 @@ from rag.vector import create_or_load_vectorstore
 from rag.retriever import get_retriever
 #from memory.memory import save_chat, get_chat_history
 from prompts.prompt import build_prompt
+import tempfile
 
 
 # Page Config
@@ -48,12 +49,48 @@ with st.sidebar:
 
 
 # File Upload
-uploaded_file = st.file_uploader("Upload a PDF", type="pdf")
+uploaded_files = st.file_uploader("Upload a PDF", type="pdf",accept_multiple_files=True)
+process_button = st.button("Process Documents")
 
-if uploaded_file is not None:
+if uploaded_files and process_button:
+
+    if st.session_state.loaded_file != [file.name for file in uploaded_files]:
+
+        all_documents = []
+
+        for uploaded_file in uploaded_files:
+            temp_dir = tempfile.gettempdir()
+            file_path = os.path.join(temp_dir, uploaded_file.name)
+
+            with open(file_path, "wb") as f:
+                f.write(uploaded_file.read())
+
+            documents = load_documents(file_path)
+            all_documents.extend(documents)
+
+        st.success("PDFs uploaded successfully")
+
+        with st.spinner("Processing documents..."):
+            texts = split_documents(all_documents)
+            embeddings = get_embeddings()
+            vectorstore = create_or_load_vectorstore(texts, embeddings)
+            st.session_state.retriever = get_retriever(vectorstore)
+
+        st.session_state.loaded_file = [file.name for file in uploaded_files]
+        st.session_state.chat_ui = []
+        st.session_state.chat_history = ""
+
+        st.success("All documents ready for chat!")
 
     # Only rebuild if a new file is uploaded
-    if st.session_state.loaded_file != uploaded_file.name:
+    if st.session_state.loaded_file != [file.name for file in uploaded_files]:
+        all_documents=[]
+        
+        for uploaded_file in uploaded_files:
+            file_path = os.path.join("/tmp", uploaded_file.name)
+
+            with open(file_path, "wb") as f:
+                f.write(uploaded_file.read())
 
         with open("temp.pdf", "wb") as f:
             f.write(uploaded_file.read())
