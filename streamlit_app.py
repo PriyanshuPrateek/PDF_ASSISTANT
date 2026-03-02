@@ -82,42 +82,13 @@ if uploaded_files and process_button:
 
         st.success("All documents ready for chat!")
 
-    # Only rebuild if a new file is uploaded
-    if st.session_state.loaded_file != [file.name for file in uploaded_files]:
-        all_documents=[]
-        
-        for uploaded_file in uploaded_files:
-            file_path = os.path.join("/tmp", uploaded_file.name)
-
-            with open(file_path, "wb") as f:
-                f.write(uploaded_file.read())
-
-        with open("temp.pdf", "wb") as f:
-            f.write(uploaded_file.read())
-
-        st.success("PDF uploaded successfully")
-
-        with st.spinner("Processing document..."):
-
-            document = load_documents("temp.pdf")
-            texts = split_documents(document)
-            embeddings = get_embeddings()
-            vectorstore = create_or_load_vectorstore(texts, embeddings)
-            st.session_state.retriever = get_retriever(vectorstore)
-
-        st.session_state.loaded_file = uploaded_file.name
-        st.session_state.chat_ui = []  # reset chat for new document
-        st.success("Document ready for chat!")
-
-
-
 # Chat Section
 
 if st.session_state.retriever:
 
     llm = ChatGroq(
         groq_api_key= groq_api_key,
-        model_name=model_name
+        model_name=model_name   
     )
 
     user_query = st.chat_input("Ask something about the document...")
@@ -131,10 +102,8 @@ if st.session_state.retriever:
         if user_query.strip().lower() in ["thankyou", "thank you", "thanks"]:
             response = "You're welcome 😊"
         else:
-           
-            full_query = chat_history + "\nUser: " + user_query
 
-            docs = st.session_state.retriever.invoke(full_query)
+            docs = st.session_state.retriever.invoke(user_query)
             context = "\n\n".join([doc.page_content for doc in docs])
 
             prompt = build_prompt(chat_history, context, user_query)
