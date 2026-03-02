@@ -13,7 +13,11 @@ def build_prompt(chat_history, context, query):
     "I could not find the answer in the provided documents."
 
     If the new question introduces a different topic than previous conversation, ignore previous topic and focus only on the current context.
-
+    Format your answer clearly using Markdown:
+    - Use bullet points when needed.
+    - Use proper code blocks (```) for  technical examples.
+    - Structure the answer cleanly.
+    - Preserve tables if present in the context.
     Previous Conversation:
     {chat_history}
 
